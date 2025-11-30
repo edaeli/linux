@@ -1,18 +1,20 @@
+#include "parallel_scheduler.h"
 #include <iostream>
 #include <unistd.h>
-#include "parallel_scheduler.h"
 
-void do_work(int n) {
-    std::cout << "Task " << n << " started\n";
-    sleep(1); 
-    std::cout << "Task " << n << " finished\n";
+void print_task(void* arg) {
+    int x = *(int*)arg;
+    std::cout << "Task " << x << " running in thread" << std::endl;
+    sleep(1);
 }
 
 int main() {
-    parallel_scheduler ps(3); 
+    parallel_scheduler pool(3);
 
-    for (int i = 1; i <= 10; i++) {
-        ps.run(do_work, i);
+    int args[10];
+    for (int i = 0; i < 10; i++) {
+        args[i] = i;
+        pool.run(print_task, &args[i]);
     }
 
     sleep(5); 

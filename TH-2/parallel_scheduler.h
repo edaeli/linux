@@ -1,37 +1,36 @@
 #ifndef PARALLEL_SCHEDULER_H
 #define PARALLEL_SCHEDULER_H
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-#include <functional>
-#include <vector>
-#include <atomic>
+#include <pthread.h>
 
 class parallel_scheduler {
 public:
-    explicit parallel_scheduler(size_t capacity);
+    using task_fn = void (*)(void*);
+
+    explicit parallel_scheduler(int capacity);
     ~parallel_scheduler();
 
-    template<typename Func, typename Arg>
-    void run(Func f, Arg arg) {
-        {
-            std::unique_lock<std::mutex> lock(mtx);
-            tasks.push([=]() { f(arg); });
-        }
-        cv.notify_one();
-    }
+    void run(task_fn func, void* arg);
 
 private:
-    void worker(); 
+    struct Task {
+        task_fn func;
+        void* arg;
+    };
 
-    std::vector<std::thread> threads;
-    std::queue<std::function<void()>> tasks;
+    Task tasks[100];       
+    int head, tail;       
+    int count;
 
-    std::mutex mtx;
-    std::condition_variable cv;
-    std::atomic<bool> stop;
+    pthread_t* threads;
+    int thread_count;
+
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+
+    bool stop;
+
+    static void* worker(void* arg);
 };
 
 #endif
